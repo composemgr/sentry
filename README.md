@@ -45,7 +45,7 @@ See `docker-compose.yaml` for complete list of configurable options.
 
 ## 📂 Volumes
 
-- `./rootfs/data/sentry` - Data storage
+- `./volumes/data/sentry` - Data storage
 
 ## 🔍 Logging
 
