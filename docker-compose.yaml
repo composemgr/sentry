@@ -20,7 +20,7 @@ services:
     ports:
       - '172.17.0.1:9000:9000'
     volumes:
-      - './rootfs/data/sentry:/data'
+      - './volumes/data/sentry:/data'
     networks:
       - sentry
 
