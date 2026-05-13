@@ -17,10 +17,61 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      SENTRY_SECRET_KEY: ${APP_SECRET_KEY:-changeme_secret_key_min_32_chars}
+      SENTRY_POSTGRES_HOST: sentry-db
+      SENTRY_DB_NAME: ${DB_CREATE_DATABASE_NAME:-sentry}
+      SENTRY_DB_USER: ${DB_USER_NAME:-sentry}
+      SENTRY_DB_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
+      SENTRY_REDIS_HOST: sentry-redis
+      SENTRY_EMAIL_HOST: ${EMAIL_SERVER_HOST:-localhost}
+      SENTRY_EMAIL_PORT: ${EMAIL_SERVER_PORT:-25}
+      SENTRY_SERVER_EMAIL: ${EMAIL_SERVER_MAIL_FROM:-noreply@example.com}
     ports:
       - '172.17.0.1:9000:9000'
     volumes:
       - './volumes/data/sentry:/data'
+    depends_on:
+      - sentry-db
+      - sentry-redis
+    networks:
+      - sentry
+
+  sentry-db:
+    image: postgres:latest
+    container_name: sentry-db
+    hostname: sentry-db
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      POSTGRES_DB: ${DB_CREATE_DATABASE_NAME:-sentry}
+      POSTGRES_USER: ${DB_USER_NAME:-sentry}
+      POSTGRES_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
+    volumes:
+      - './volumes/data/db/postgres/sentry:/var/lib/postgresql/data'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - sentry
+
+  sentry-redis:
+    image: redis:alpine
+    container_name: sentry-redis
+    hostname: sentry-redis
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    volumes:
+      - './volumes/data/db/redis/sentry:/data'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - sentry
 
