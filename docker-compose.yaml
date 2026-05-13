@@ -26,6 +26,8 @@ services:
       SENTRY_EMAIL_HOST: ${EMAIL_SERVER_HOST:-localhost}
       SENTRY_EMAIL_PORT: ${EMAIL_SERVER_PORT:-25}
       SENTRY_SERVER_EMAIL: ${EMAIL_SERVER_MAIL_FROM:-noreply@example.com}
+      CONTAINER_NAME: sentry-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
     ports:
       - '172.17.0.1:9000:9000'
     volumes:
@@ -35,6 +37,24 @@ services:
       - sentry-redis
     networks:
       - sentry
+      - proxy
+      - cloudflare
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://sentry-app:9000'
+      - 'cloudflare.hostname=sentry.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.sentry-app.entrypoints=http'
+      - 'traefik.http.routers.sentry-app-secure.tls=true'
+      - 'traefik.http.routers.sentry-app.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.sentry-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.sentry-app.middlewares=sentry-app-https-redirect'
+      - 'traefik.http.routers.sentry-app-secure.entrypoints=https'
+      - 'traefik.http.routers.sentry-app-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.sentry-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.sentry-app-secure.service=sentry-app'
+      - 'traefik.http.services.sentry-app.loadbalancer.server.port=9000'
 
   sentry-db:
     image: postgres:latest
@@ -48,6 +68,7 @@ services:
       POSTGRES_DB: ${DB_CREATE_DATABASE_NAME:-sentry}
       POSTGRES_USER: ${DB_USER_NAME:-sentry}
       POSTGRES_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
+      CONTAINER_NAME: sentry-db
     volumes:
       - './volumes/data/db/postgres/sentry:/var/lib/postgresql/data'
     healthcheck:
@@ -74,8 +95,14 @@ services:
       retries: 3
     networks:
       - sentry
+    environment:
+      CONTAINER_NAME: sentry-redis
 
 networks:
   sentry:
     name: sentry
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
