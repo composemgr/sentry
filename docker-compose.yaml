@@ -25,6 +25,9 @@ services:
       SENTRY_REDIS_HOST: sentry-redis
       SENTRY_EMAIL_HOST: ${EMAIL_SERVER_HOST:-localhost}
       SENTRY_EMAIL_PORT: ${EMAIL_SERVER_PORT:-25}
+      SENTRY_EMAIL_USER: ${EMAIL_SERVER_LOGIN_NAME:-}
+      SENTRY_EMAIL_PASSWORD: ${EMAIL_SERVER_LOGIN_PASS:-}
+      SENTRY_EMAIL_USE_TLS: ${EMAIL_SERVER_USE_TLS:-false}
       SENTRY_SERVER_EMAIL: ${EMAIL_SERVER_MAIL_FROM:-noreply@example.com}
       CONTAINER_NAME: sentry-app
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
@@ -33,8 +36,10 @@ services:
     volumes:
       - './volumes/data/sentry:/data'
     depends_on:
-      - sentry-db
-      - sentry-redis
+      sentry-db:
+        condition: service_healthy
+      sentry-redis:
+        condition: service_healthy
     networks:
       - sentry
       - proxy
