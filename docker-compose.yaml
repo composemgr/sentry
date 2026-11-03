@@ -32,6 +32,12 @@ services:
       SENTRY_EMAIL_PASSWORD: ${EMAIL_SERVER_LOGIN_PASS:-}
       SENTRY_EMAIL_USE_TLS: ${EMAIL_SERVER_USE_TLS:-false}
       SENTRY_SERVER_EMAIL: ${EMAIL_SERVER_MAIL_FROM:-noreply@example.com}
+    healthcheck:
+      test: ['CMD', 'bash', '-c', 'exec 3<>/dev/tcp/127.0.0.1/9000']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     ports:
       - '172.17.0.1:64341:9000'
     volumes:
